@@ -190,7 +190,7 @@ class Reminders(Cog):
             embed.colour = discord.Colour.red()
             embed.set_author(
                 icon_url=Icons.remind_red,
-                name=f"Sorry it should have arrived {time.time_since(expected_time)} !"
+                name=f"Sorry it should have arrived {time.format_relative(expected_time)} !"
             )
 
         additional_mentions = ' '.join(
