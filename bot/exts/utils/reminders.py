@@ -263,7 +263,7 @@ class Reminders(Cog):
             }
         )
 
-        formatted_time = time.discord_timestamp(expiration, time.TimestampFormats.RELATIVE)
+        formatted_time = time.format_relative(expiration)
         mention_string = f"Your reminder will arrive {formatted_time}"
 
         if mentions:
@@ -302,7 +302,7 @@ class Reminders(Cog):
         for content, remind_at, id_, mentions in reminders:
             # Parse and humanize the time, make it pretty :D
             remind_datetime = isoparse(remind_at).replace(tzinfo=None)
-            expiry = time.discord_timestamp(remind_datetime, time.TimestampFormats.RELATIVE)
+            expiry = time.format_relative(remind_datetime)
 
             mentions = ", ".join(
                 # Both Role and User objects have the `name` attribute

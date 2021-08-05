@@ -169,7 +169,7 @@ class Information(Cog):
         """Returns an embed full of server information."""
         embed = Embed(colour=Colour.blurple(), title="Server Information")
 
-        created = time.discord_timestamp(ctx.guild.created_at, time.TimestampFormats.RELATIVE)
+        created = time.format_relative(ctx.guild.created_at)
         region = ctx.guild.region
         num_roles = len(ctx.guild.roles) - 1  # Exclude @everyone
 
@@ -239,7 +239,7 @@ class Information(Cog):
         """Creates an embed containing information on the `user`."""
         on_server = bool(ctx.guild.get_member(user.id))
 
-        created = time.discord_timestamp(user.created_at, time.TimestampFormats.RELATIVE)
+        created = time.format_relative(user.created_at)
 
         name = str(user)
         if on_server and user.nick:
@@ -257,7 +257,7 @@ class Information(Cog):
                 badges.append(emoji)
 
         if on_server:
-            joined = time.discord_timestamp(user.joined_at, time.TimestampFormats.RELATIVE)
+            joined = time.format_relative(user.joined_at)
             # The 0 is for excluding the default @everyone role,
             # and the -1 is for reversing the order of the roles to highest to lowest in hierarchy.
             roles = ", ".join(role.mention for role in user.roles[:0:-1])
