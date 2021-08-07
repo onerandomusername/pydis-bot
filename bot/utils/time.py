@@ -298,7 +298,10 @@ def format_with_duration(
         return None
 
     formatted_timestamp = discord_timestamp(timestamp)
-    duration = humanize_delta(timestamp, other_timestamp, max_units=max_units)
+    if other_timestamp is None:
+        duration = humanize_delta(timestamp, max_units=max_units)
+    else:
+        duration = humanize_delta(timestamp, other_timestamp, max_units=max_units)
 
     return f"{formatted_timestamp} ({duration})"
 
