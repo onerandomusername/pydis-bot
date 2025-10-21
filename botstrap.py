@@ -55,7 +55,7 @@ class SilencedDict(dict):
         try:
             return super().__getitem__(item)
         except KeyError:
-            log.warning(f"Couldn't find key: {item} in dict: {self.name} ")
+            log.fatal(f"Couldn't find key: {item} in dict: {self.name} ")
             log.warning(
                 "Please make sure to follow our contribution guideline "
                 "https://www.pythondiscord.com/pages/guides/pydis-guides/contributing/bot/ "
