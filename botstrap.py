@@ -7,10 +7,13 @@ from dotenv import load_dotenv
 from httpx import Client, HTTPStatusError, Response
 
 from bot.constants import Webhooks, _Categories, _Channels, _Roles
-from bot.log import get_logger
+from bot.log import get_logger, setup as setup_loggers
 
 load_dotenv()
-log = get_logger("Config Bootstrapper")
+setup_loggers()
+log = get_logger("botstrap")
+# silence noisy httpcore logger
+get_logger("httpcore").setLevel("INFO")
 
 env_file_path = Path(".env.server")
 BOT_TOKEN = os.getenv("BOT_TOKEN", None)
