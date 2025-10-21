@@ -12,10 +12,9 @@ from httpx import Client, Response
 logging.getLogger("pydis_core").setLevel(logging.WARNING)
 
 from bot.constants import Webhooks, _Categories, _Channels, _Roles  # noqa: E402
-from bot.log import get_logger, setup as setup_loggers  # noqa: E402
+from bot.log import get_logger  # noqa: E402
 
 load_dotenv()
-setup_loggers()
 log = get_logger("botstrap")
 # silence noisy httpcore logger
 logging.getLogger("httpcore").setLevel("INFO")
