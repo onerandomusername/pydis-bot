@@ -48,7 +48,7 @@ if not GUILD_ID:
     raise ValueError(message)
 
 
-class SilencedDict(dict):
+class SilencedDict(dict[str, Any]):
     """A dictionary that silences KeyError exceptions upon subscription to non existent items."""
 
     def __init__(self, name: str):
@@ -156,7 +156,7 @@ class DiscordClient(Client):
         self,
         channel_name_: str,
         category_id_: int | str | None = None
-    ) -> int:
+    ) -> str:
         """Creates a new forum channel."""
         payload = {"name": channel_name_, "type": GUILD_FORUM_TYPE}
         if category_id_:
@@ -176,7 +176,7 @@ class DiscordClient(Client):
         log.info(f"Channel python-help: {channel_id_} is not a forum channel and will be replaced with one.")
         self.delete(f"/channels/{channel_id_}")
 
-    def get_all_roles(self) -> dict:
+    def get_all_roles(self) -> dict[str, int]:
         """Fetches all the roles in a guild."""
         result = SilencedDict(name="Roles dictionary")
 
