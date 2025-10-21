@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 import sys
@@ -7,14 +8,17 @@ from typing import Any, cast
 from dotenv import load_dotenv
 from httpx import Client, Response
 
-from bot.constants import Webhooks, _Categories, _Channels, _Roles
-from bot.log import get_logger, setup as setup_loggers
+# we want to filter out the patching send typing notifications from bot core when we import to get constants
+logging.getLogger("pydis_core").setLevel(logging.WARNING)
+
+from bot.constants import Webhooks, _Categories, _Channels, _Roles  # noqa: E402
+from bot.log import get_logger, setup as setup_loggers  # noqa: E402
 
 load_dotenv()
 setup_loggers()
 log = get_logger("botstrap")
 # silence noisy httpcore logger
-get_logger("httpcore").setLevel("INFO")
+logging.getLogger("httpcore").setLevel("INFO")
 
 env_file_path = Path(".env.server")
 BOT_TOKEN = os.getenv("BOT_TOKEN", None)
