@@ -75,10 +75,29 @@ class DiscordClient(Client):
         )
         self.guild_id = guild_id
         self._app_info: dict[str, Any] | None = None
+        self._guild_info: dict[str, Any] | None = None
+        self._guild_channels: list[dict[str, Any]] | None = None
 
     @staticmethod
     def _raise_for_status(response: Response) -> None:
         response.raise_for_status()
+
+    @property
+    def guild_info(self) -> dict[str, Any]:
+        """Fetches the guild's information."""
+        if self._guild_info is None:
+            response = self.get(f"/guilds/{self.guild_id}")
+            self._guild_info = cast("dict[str, Any]", response.json())
+        return self._guild_info
+
+    @property
+    def guild_channels(self) -> list[dict[str, Any]]:
+        """Fetches the guild's channels."""
+        if self._guild_channels is None:
+            response = self.get(f"/guilds/{self.guild_id}/channels")
+            self._guild_channels = cast("list[dict[str, Any]]", response.json())
+        return self._guild_channels
+
 
     @property
     def app_info(self) -> dict[str, Any]:
@@ -108,10 +127,10 @@ class DiscordClient(Client):
     def check_if_in_guild(self) -> bool:
         """Check if the bot is a member of the guild."""
         try:
-            response = self.get(f"/guilds/{self.guild_id}")
+            _ = self.guild_info
         except Exception:
             return False
-        return response.status_code == 200
+        return True
 
     def upgrade_server_to_community_if_necessary(
         self,
@@ -119,15 +138,14 @@ class DiscordClient(Client):
         announcements_channel_id_: int | str,
     ) -> None:
         """Fetches server info & upgrades to COMMUNITY if necessary."""
-        response = self.get(f"/guilds/{self.guild_id}")
-        payload = response.json()
+        payload = self.guild_info
 
         if COMMUNITY_FEATURE not in payload["features"]:
             log.warning("This server is currently not a community, upgrading.")
             payload["features"].append(COMMUNITY_FEATURE)
             payload["rules_channel_id"] = rules_channel_id_
             payload["public_updates_channel_id"] = announcements_channel_id_
-            self.patch(f"/guilds/{self.guild_id}", json=payload)
+            self._guild_info = self.patch(f"/guilds/{self.guild_id}", json=payload).json()
             log.info(f"Server {self.guild_id} has been successfully updated to a community.")
 
     def create_forum_channel(
@@ -147,10 +165,9 @@ class DiscordClient(Client):
 
     def is_forum_channel(self, channel_id_: str) -> bool:
         """A boolean that indicates if a channel is of type GUILD_FORUM."""
-        response = self.get(f"/channels/{channel_id_}")
-        return response.json()["type"] == GUILD_FORUM_TYPE
+        return next(filter(lambda c: c["id"] == channel_id_, self.guild_channels)).get("type", None) == GUILD_FORUM_TYPE
 
-    def delete_channel(self, channel_id_: id) -> None:
+    def delete_channel(self, channel_id_: int | str) -> None:
         """Delete a channel."""
         log.info(f"Channel python-help: {channel_id_} is not a forum channel and will be replaced with one.")
         self.delete(f"/channels/{channel_id_}")
@@ -159,8 +176,7 @@ class DiscordClient(Client):
         """Fetches all the roles in a guild."""
         result = SilencedDict(name="Roles dictionary")
 
-        response = self.get(f"guilds/{self.guild_id}/roles")
-        roles = response.json()
+        roles = self.guild_info["roles"]
 
         for role in roles:
             name = "_".join(part.lower() for part in role["name"].split(" ")).replace("-", "_")
@@ -175,8 +191,7 @@ class DiscordClient(Client):
         channels = SilencedDict(name="Channels dictionary")
         categories = SilencedDict(name="Categories dictionary")
 
-        response = self.get(f"guilds/{self.guild_id}/channels")
-        server_channels = response.json()
+        server_channels = self.guild_channels
 
         for channel in server_channels:
             channel_type = channel["type"]
