@@ -60,7 +60,7 @@ class SilencedDict(dict[str, Any]):
         except KeyError:
             log.fatal(f"Couldn't find key: {item} in dict: {self.name} ")
             log.warning(
-                "Please make sure to follow our contribution guideline "
+                "Please follow our contribution guidelines "
                 "https://www.pythondiscord.com/pages/guides/pydis-guides/contributing/bot/ "
                 "to guarantee a successful run of botstrap "
             )
@@ -294,8 +294,6 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
             continue
 
         config_str += f"categories_{category_name}={category_id}\n"
-
-    env_file_path.write_text(config_str)
 
     config_str += "\n#Webhooks\n"
     existing_webhooks = discord_client.get_all_guild_webhooks()
