@@ -72,7 +72,7 @@ class DiscordClient(Client):
 
     def __init__(self, guild_id: int | str):
         super().__init__(
-            base_url="https://discord.com/api/v10",
+            base_url="https://discord.com/api/v10/",
             headers={"Authorization": f"Bot {BOT_TOKEN}"},
             event_hooks={"response": [self._raise_for_status]},
         )
@@ -212,14 +212,14 @@ class DiscordClient(Client):
 
     def get_all_guild_webhooks(self) -> list[dict[str, Any]]:
         """Lists all the webhooks for the guild."""
-        response = self.get(f"guilds/{self.guild_id}/webhooks")
+        response = self.get(f"/guilds/{self.guild_id}/webhooks")
         return response.json()
 
     def create_webhook(self, name: str, channel_id_: int) -> str:
         """Creates a new webhook for a particular channel."""
         payload = {"name": name}
 
-        response = self.post(f"channels/{channel_id_}/webhooks", json=payload)
+        response = self.post(f"/channels/{channel_id_}/webhooks", json=payload)
         new_webhook = response.json()
         return new_webhook["id"]
 
