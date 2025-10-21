@@ -315,3 +315,5 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
 
     with env_file_path.open("wb") as file:
         file.write(config_str.encode("utf-8"))
+
+    log.info("Botstrap completed successfully. Configuration has been written to %s", env_file_path)
