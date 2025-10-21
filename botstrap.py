@@ -2,6 +2,7 @@ import os
 import re
 import sys
 from pathlib import Path
+from typing import Any, cast
 
 from dotenv import load_dotenv
 from httpx import Client, HTTPStatusError, Response
@@ -73,10 +74,36 @@ class DiscordClient(Client):
             event_hooks={"response": [self._raise_for_status]},
         )
         self.guild_id = guild_id
+        self._app_info: dict[str, Any] | None = None
 
     @staticmethod
     def _raise_for_status(response: Response) -> None:
         response.raise_for_status()
+
+    @property
+    def app_info(self) -> dict[str, Any]:
+        """Fetches the application's information."""
+        if self._app_info is None:
+            response = self.get("/applications/@me")
+            self._app_info = cast("dict[str, Any]", response.json())
+        return self._app_info
+
+    def upgrade_application_flags_if_necessary(self) -> bool:
+        """
+        Set the app's flags to allow the intents that we need.
+
+        Returns a boolean defining whether changes were made.
+        """
+        # we're fetching first in the event that the user has already set some flags
+        app = self.app_info
+        current_flags = app.get("flags", 0)
+        new_flags = current_flags | 1 << 15 | 1 << 19
+        if new_flags != current_flags:
+            log.info("Upgrading application flags to enable required intents")
+            resp = self.patch("/applications/@me", json={"flags": new_flags})
+            self._app_info = cast("dict[str, Any]", resp.json())
+            return True
+        return False
 
     def upgrade_server_to_community_if_necessary(
         self,
@@ -175,6 +202,8 @@ class DiscordClient(Client):
 
 
 with DiscordClient(guild_id=GUILD_ID) as discord_client:
+    discord_client.upgrade_application_flags_if_necessary()
+
     config_str = "#Roles\n"
 
     all_roles = discord_client.get_all_roles()
