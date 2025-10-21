@@ -61,7 +61,7 @@ class SilencedDict(dict[str, Any]):
             log.fatal(f"Couldn't find key: {item} in dict: {self.name} ")
             log.warning(
                 "Please follow our contribution guidelines "
-                "https://www.pythondiscord.com/pages/guides/pydis-guides/contributing/bot/ "
+                "https://pydis.com/contributing-bot "
                 "to guarantee a successful run of botstrap "
             )
             sys.exit(-1)
