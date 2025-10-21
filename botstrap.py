@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from dotenv import load_dotenv
-from httpx import Client, HTTPStatusError, Response
+from httpx import Client, Response
 
 from bot.constants import Webhooks, _Categories, _Channels, _Roles
 from bot.log import get_logger, setup as setup_loggers
@@ -192,13 +192,10 @@ class DiscordClient(Client):
 
         return channels, categories
 
-    def webhook_exists(self, webhook_id_: int) -> bool:
-        """A predicate that indicates whether a webhook exists already or not."""
-        try:
-            self.get(f"webhooks/{webhook_id_}")
-            return True
-        except HTTPStatusError:
-            return False
+    def get_all_guild_webhooks(self) -> list[dict[str, Any]]:
+        """Lists all the webhooks for the guild."""
+        response = self.get(f"guilds/{self.guild_id}/webhooks")
+        return response.json()
 
     def create_webhook(self, name: str, channel_id_: int) -> str:
         """Creates a new webhook for a particular channel."""
@@ -283,14 +280,15 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
     env_file_path.write_text(config_str)
 
     config_str += "\n#Webhooks\n"
-
-    for webhook_name, webhook_model in Webhooks:
-        webhook = discord_client.webhook_exists(webhook_model.id)
-        if not webhook:
+    existing_webhooks = discord_client.get_all_guild_webhooks()
+    for webhook_name, webhook_model in Webhooks :
+        for existing_hook in existing_webhooks:
+            if existing_hook["id"] == str(webhook_model.id):
+                webhook_id = existing_hook["id"]
+                break
+        else:
             webhook_channel_id = int(all_channels[webhook_name])
             webhook_id = discord_client.create_webhook(webhook_name, webhook_channel_id)
-        else:
-            webhook_id = webhook_model.id
         config_str += f"webhooks_{webhook_name}__id={webhook_id}\n"
         config_str += f"webhooks_{webhook_name}__channel={all_channels[webhook_name]}\n"
 
