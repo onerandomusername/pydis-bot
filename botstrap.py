@@ -144,7 +144,7 @@ class DiscordClient(Client):
         payload = self.guild_info
 
         if COMMUNITY_FEATURE not in payload["features"]:
-            log.warning("This server is currently not a community, upgrading.")
+            log.info("This server is currently not a community, upgrading.")
             payload["features"].append(COMMUNITY_FEATURE)
             payload["rules_channel_id"] = rules_channel_id_
             payload["public_updates_channel_id"] = announcements_channel_id_
