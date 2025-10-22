@@ -297,14 +297,23 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
 
     config_str += "\n#Webhooks\n"
     existing_webhooks = discord_client.get_all_guild_webhooks()
-    for webhook_name, webhook_model in Webhooks :
+    for webhook_name, webhook_model in Webhooks:
+        formatted_webhook_name = webhook_name.replace("_", " ").title()
         for existing_hook in existing_webhooks:
-            if existing_hook["id"] == str(webhook_model.id):
+            if (
+                # check the existing ID matches the configured one
+                existing_hook["id"] == str(webhook_model.id)
+                or (
+                    # check if the name and the channel ID match the configured ones
+                    existing_hook["name"] == formatted_webhook_name
+                    and existing_hook["channel_id"] == str(all_channels[webhook_name])
+                )
+            ):
                 webhook_id = existing_hook["id"]
                 break
         else:
             webhook_channel_id = int(all_channels[webhook_name])
-            webhook_id = discord_client.create_webhook(webhook_name, webhook_channel_id)
+            webhook_id = discord_client.create_webhook(formatted_webhook_name, webhook_channel_id)
         config_str += f"webhooks_{webhook_name}__id={webhook_id}\n"
         config_str += f"webhooks_{webhook_name}__channel={all_channels[webhook_name]}\n"
 
