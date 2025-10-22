@@ -249,7 +249,7 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
         client_id = discord_client.app_info.get("id")
         log.error(f"The bot is not a member of the configured guild with ID {GUILD_ID}.")
         log.warning(
-            f"Please invite with the following URL and rerun this script: https://discord.com/oauth2/authorize?client_id={client_id}&guild={GUILD_ID}&scope=bot+applications.commands&permissions=8"
+            f"Please invite with the following URL and rerun this script: https://discord.com/oauth2/authorize?client_id={client_id}&guild_id={GUILD_ID}&scope=bot+applications.commands&permissions=8"
         )
         sys.exit(42)
 
