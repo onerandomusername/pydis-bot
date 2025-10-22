@@ -28,6 +28,7 @@ PYTHON_HELP_CHANNEL_NAME = "python_help"
 PYTHON_HELP_CATEGORY_NAME = "python_help_system"
 ANNOUNCEMENTS_CHANNEL_NAME = "announcements"
 RULES_CHANNEL_NAME = "rules"
+GUILD_CATEGORY_TYPE = 4
 GUILD_FORUM_TYPE = 15
 
 if not BOT_TOKEN:
@@ -203,7 +204,7 @@ class DiscordClient(Client):
                 name = f"off_topic_{off_topic_count}"
                 off_topic_count += 1
 
-            if channel_type == 4:
+            if channel_type == GUILD_CATEGORY_TYPE:
                 categories[name] = channel["id"]
             else:
                 channels[name] = channel["id"]
