@@ -31,6 +31,23 @@ RULES_CHANNEL_NAME = "rules"
 GUILD_CATEGORY_TYPE = 4
 GUILD_FORUM_TYPE = 15
 
+
+EMOJIS: dict[str, str] = {
+    "defcon_shutdown": "⛔",
+    "defcon_unshutdown": "🛡️",
+    "defcon_update": "⚙️",
+    "failmail": "🧧",
+    "failed_file": "📁",
+    "incident_actioned": "✅",
+    "incident_unactioned": "❌",
+    "incident_investigating": "🔍",
+    "status_dnd": "🔴",
+    "status_idle": "🟡",
+    "status_offline": "⚪",
+    "status_online": "🟢",
+    "trashcan": "🗑️",
+}
+
 if not BOT_TOKEN:
     message = (
         "Couldn't find the `BOT_TOKEN` environment variable. "
@@ -318,7 +335,11 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
         config_str += f"webhooks_{webhook_name}__id={webhook_id}\n"
 
     config_str += "\n#Emojis\n"
-    config_str += "emojis_trashcan=🗑️"
+
+    # we add some replacements for some of the emojis used by the bot
+    # this is a best-effort and doesn't replace every emote
+    for emoji_name, emoji_unicode in EMOJIS.items():
+        config_str += f"emojis_{emoji_name}={emoji_unicode}\n"
 
     with env_file_path.open("wb") as file:
         file.write(config_str.encode("utf-8"))
