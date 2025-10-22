@@ -26,7 +26,7 @@ GUILD_ID = os.getenv("GUILD_ID", None)
 COMMUNITY_FEATURE = "COMMUNITY"
 PYTHON_HELP_CHANNEL_NAME = "python_help"
 PYTHON_HELP_CATEGORY_NAME = "python_help_system"
-ANNOUNCEMENTS_CHANNEL_NAME = "announcements"
+ANNOUNCEMENTS_CHANNEL_NAME = "discord_announcements"
 RULES_CHANNEL_NAME = "rules"
 GUILD_CATEGORY_TYPE = 4
 GUILD_FORUM_TYPE = 15
@@ -119,7 +119,6 @@ class DiscordClient(Client):
             self._guild_channels = cast("list[dict[str, Any]]", response.json())
         return self._guild_channels
 
-
     @property
     def app_info(self) -> dict[str, Any]:
         """Fetches the application's information."""
@@ -159,15 +158,96 @@ class DiscordClient(Client):
         announcements_channel_id_: int | str,
     ) -> None:
         """Fetches server info & upgrades to COMMUNITY if necessary."""
-        payload = self.guild_info
+        guild_info = self.guild_info
 
-        if COMMUNITY_FEATURE not in payload["features"]:
-            log.info("This server is currently not a community, upgrading.")
-            payload["features"].append(COMMUNITY_FEATURE)
-            payload["rules_channel_id"] = rules_channel_id_
-            payload["public_updates_channel_id"] = announcements_channel_id_
-            self._guild_info = self.patch(f"/guilds/{self.guild_id}", json=payload).json()
-            log.info(f"Server {self.guild_id} has been successfully updated to a community.")
+        if COMMUNITY_FEATURE in guild_info["features"]:
+            return
+        log.info("This server is currently not a community, upgrading.")
+        payload = {"features": guild_info["features"]}
+        # enabling community requires verification_level to be at least 1 and explicit_content_filter to be at least 2
+        payload["features"].append(COMMUNITY_FEATURE)
+        payload["rules_channel_id"] = rules_channel_id_
+        payload["public_updates_channel_id"] = announcements_channel_id_
+        if guild_info["verification_level"] < 1:
+            payload["verification_level"] = 1
+        if guild_info["explicit_content_filter"] < 2:
+            payload["explicit_content_filter"] = 2
+        self._guild_info = self.patch(f"/guilds/{self.guild_id}", json=payload).json()
+        log.info(f"Server {self.guild_id} has been successfully updated to a community.")
+
+    def upgrade_to_template(self, template_id: str) -> bool:
+        """Upgrades the server to use a specific template."""
+        template_info = self.get(f"/guilds/templates/{template_id}").json()
+
+        template_guild = template_info["serialized_source_guild"]
+        guild = self.guild_info
+        guild_channels = self.guild_channels
+        any_role_change = False
+
+        # first compare roles
+        guild_roles = {role["name"]: role for role in guild["roles"]}
+        # we reverse this list since the API provides the lowest tier roles first
+        template_roles = {role["name"]: role for role in reversed(template_guild["roles"])}
+        role_template_id_to_id: dict[str, str] = {}
+
+        for role_name, template_role in template_roles.items():
+            if role_name in guild_roles:
+                role_template_id_to_id[template_role["id"]] = guild_roles[role_name]["id"]
+                continue
+            role_info = self.post(f"/guilds/{self.guild_id}/roles", json=template_role).json()
+            guild_roles[role_info["name"]] = role_info
+            any_role_change = True
+            role_template_id_to_id[template_role["id"]] = role_info["id"]
+
+        if any_role_change:
+            # re-sort all of the roles
+            payload: list[dict[str, str | int]] = []
+            for role_position, role_id in enumerate(reversed(role_template_id_to_id.values())):
+                payload.append({"id": role_id, "position": role_position})
+            self.patch(f"/guilds/{self.guild_id}/roles", json=payload)
+
+        # then add new channels
+        guild_channels = {channel["name"]: channel for channel in guild_channels}
+        template_channels = {channel["name"]: channel for channel in template_guild["channels"]}
+        any_channel_change = False
+        # category channels are guaranteed to come before any channels referencing them
+        channel_id_mapping: dict[str, str] = {}  # template id to guild id
+        for channel_name, template_channel in template_channels.items():
+            if channel_name in guild_channels:
+                channel_id_mapping[template_channel["id"]] = guild_channels[channel_name]["id"]
+                continue
+
+            # Set the parent_id to the corresponding category's id
+            parent_id = template_channel.get("parent_id")
+            if parent_id and parent_id in channel_id_mapping:
+                template_channel["parent_id"] = channel_id_mapping[parent_id]
+            if perm_overwrites := template_channel.get("permission_overwrites"):
+                for overwrite in perm_overwrites:
+                    if "id" in overwrite:
+                        role_id = overwrite["id"]
+                        if role_id in role_template_id_to_id:
+                            overwrite["id"] = role_template_id_to_id[role_id]
+            template_channel.pop("position", None)
+            channel_info = self.post(f"/guilds/{self.guild_id}/channels", json=template_channel).json()
+            any_channel_change = True
+            channel_id_mapping[template_channel["id"]] = channel_info["id"]
+            log.info("Created channel %s from template sync", channel_info["name"])
+
+        if any_channel_change:
+            # re-sort all of the roles
+            payload: list[dict[str, str | int]] = []
+            for channel_position, channel_id in enumerate(channel_id_mapping.values()):
+                payload.append({"id": channel_id, "position": channel_position})
+            self.patch(f"/guilds/{self.guild_id}/channels", json=payload)
+
+        # then
+
+        if any_role_change:
+            self._guild_info = None
+        if any_channel_change:
+            self._guild_channels = None
+
+        return any_role_change or any_channel_change
 
     def create_forum_channel(
         self,
@@ -253,12 +333,21 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
         )
         sys.exit(42)
 
+    all_channels, all_categories = discord_client.get_all_channels_and_categories()
+
+    if discord_client.upgrade_to_template("zmHtscpYN9E3"):
+        all_channels, all_categories = discord_client.get_all_channels_and_categories()
+
+    rules_channel_id = all_channels[RULES_CHANNEL_NAME]
+    announcements_channel_id = all_channels[ANNOUNCEMENTS_CHANNEL_NAME]
+
+    discord_client.upgrade_server_to_community_if_necessary(rules_channel_id, announcements_channel_id)
+
     config_str = "#Roles\n"
 
     all_roles = discord_client.get_all_roles()
 
     for role_name in _Roles.model_fields:
-
         role_id = all_roles.get(role_name, None)
         if not role_id:
             log.warning(f"Couldn't find the role {role_name} in the guild, PyDis' default values will be used.")
@@ -266,14 +355,7 @@ with DiscordClient(guild_id=GUILD_ID) as discord_client:
 
         config_str += f"roles_{role_name}={role_id}\n"
 
-    all_channels, all_categories = discord_client.get_all_channels_and_categories()
-
     config_str += "\n#Channels\n"
-
-    rules_channel_id = all_channels[RULES_CHANNEL_NAME]
-    announcements_channel_id = all_channels[ANNOUNCEMENTS_CHANNEL_NAME]
-
-    discord_client.upgrade_server_to_community_if_necessary(rules_channel_id, announcements_channel_id)
 
     create_help_channel = True
 
