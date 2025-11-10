@@ -17,9 +17,13 @@ from bot.utils.messages import wait_for_deletion
 log = get_logger(__name__)
 
 GITHUB_RE = re.compile(
-    r"https://github\.com/(?P<repo>[a-zA-Z0-9-]+/[\w.-]+)/blob/"
-    r"(?P<path>[^#>]+)(\?[^#>]+)?(#L(?P<start_line>\d+)(([-~:]|(\.\.))L(?P<end_line>\d+))?)"
+    r"https?:\/\/github\.(?:com|dev)\/(?P<user>[a-zA-Z0-9-]+)\/(?P<repo>[a-zA-Z0-9-]+)\/(?:blob|tree)\/"
+    r"(?P<path>[^#>]+/[^#>]+)(\?[^#>]+)?"
+    r"(?:(#L+(?P<start_line>\d+)(?:C(?P<start_char>\d+))?(?:(?P<line_delimiter>[-~\:]"
+    r"|(\.\.))L(?P<end_line>\d+)(?:C(?P<end_char>\d+))?)?))"
 )
+
+
 
 GITHUB_GIST_RE = re.compile(
     r"https://gist\.github\.com/([a-zA-Z0-9-]+)/(?P<gist_id>[a-zA-Z0-9]+)/*"
